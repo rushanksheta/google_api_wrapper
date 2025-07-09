@@ -4,7 +4,7 @@ A lightweight, scalable Python wrapper for the **Google Forms and Google Drive A
 
 ---
 
-## 🚀 Features
+## Features
 
 ✅ Simplified authentication using OAuth 2.0 with seamless token refresh.  
 ✅ Fetch Google Forms responses in a structured DataFrame-friendly format.  
@@ -14,7 +14,7 @@ A lightweight, scalable Python wrapper for the **Google Forms and Google Drive A
 
 ---
 
-## 📦 Installation
+## Installation
 
 ### 1️⃣ Using `pip` from GitHub
 
@@ -22,7 +22,7 @@ A lightweight, scalable Python wrapper for the **Google Forms and Google Drive A
 pip install git+https://github.com/rushanksheta/google_api_wrapper.git
 ```
 
-## 📄 License
+## License
 
 This project is licensed under the **MIT License**.  
 See the [LICENSE](LICENSE) file for full license text.
