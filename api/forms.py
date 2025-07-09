@@ -1,0 +1,98 @@
+from googleapiclient.discovery import build
+from ..auth.authenticate import Authenticator
+
+class GForms():
+    def __init__(self, token_fpath):
+        self.authenticator = Authenticator(token_fpath)
+
+    def get_forms_service(self):
+        creds = self.authenticator.authenticate()
+        return build('forms', 'v1', credentials=creds)
+
+    def fetch_responses(self, form_id: str):
+        service = self.get_forms_service()
+        all_responses = []
+        page_token = None
+
+        while True:
+            request = service.forms().responses().list(formId=form_id, pageToken=page_token)
+            response = request.execute()
+
+            all_responses.extend(response.get('responses', []))
+            page_token = response.get('nextPageToken')
+
+            if not page_token:
+                break
+
+        return all_responses
+
+    def get_question_id_title_map(self, form_id: str):
+        service = self.get_forms_service()
+        form = service.forms().get(formId=form_id).execute()
+
+        id_to_title = {}
+        for item in form.get("items", []):
+            try:
+                qid = item["questionItem"]["question"]["questionId"]
+                title = item.get("title", "").strip()
+                id_to_title[qid] = title
+            except KeyError:
+                continue  # Skip non-question items
+
+        # print(form.get("items", []))  # Debugging output
+        return id_to_title
+    
+    def extract_form_data(self, form_id: str, include_fields: list = []):
+        responses = self.fetch_responses(form_id)
+        question_map = self.get_question_id_title_map(form_id)
+        rows = []
+
+        for res in responses:
+            base_row = {
+                "response_id": res.get("responseId"),
+                "create_time": res.get("createTime"),
+                "submit_time": res.get("lastSubmittedTime"),
+            }
+
+            if include_fields:
+                answers = res.get("answers", {})
+                for qid, answer in answers.items():
+                    row = base_row.copy()
+
+                    # Only add fields explicitly mentioned in include_fields
+                    if "question_id" in include_fields:
+                        row["question_id"] = qid
+
+                    if "question_title" in include_fields:
+                        row["question_title"] = question_map.get(qid, qid)
+
+                    if "textAnswers" in answer and "textAnswers" in include_fields:
+                        text_list = answer["textAnswers"].get("answers", [])
+                        row["answer"] = text_list[0].get("value") if text_list else None
+
+
+                    if "fileUploadAnswers" in answer and "fileUploadAnswers" in include_fields:
+                        files = answer["fileUploadAnswers"].get("answers", [])
+                        row["fileIds"] = [f.get("fileId") for f in files]
+                        row["fileNames"] = [f.get("fileName") for f in files]
+                        row["mimeTypes"] = [f.get("mimeType") for f in files]
+
+                    if "dateAnswers" in answer and "dateAnswers" in include_fields:
+                        dates = answer["dateAnswers"].get("answers", [])
+                        if dates:
+                            d = dates[0]
+                            if all(k in d for k in ("year", "month", "day")):
+                                row["answer_date"] = date(d["year"], d["month"], d["day"]).isoformat()
+
+                    if "timeAnswers" in answer and "timeAnswers" in include_fields:
+                        times = answer["timeAnswers"].get("answers", [])
+                        if times:
+                            t = times[0]
+                            if t.get("hours") is not None and t.get("minutes") is not None:
+                                row["answer_time"] = time(t["hours"], t["minutes"]).strftime("%H:%M")
+        
+                    rows.append(row)
+            else:
+                rows.append(base_row)
+
+        return rows
