@@ -20,3 +20,9 @@ A lightweight, scalable Python wrapper for the **Google Forms and Google Drive A
 
 ```bash
 pip install git+https://github.com/rushanksheta/google_api_wrapper.git
+
+
+## 📄 License
+
+This project is licensed under the **MIT License**.  
+See the [LICENSE](LICENSE) file for full license text.
