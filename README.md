@@ -19,4 +19,4 @@ A lightweight, scalable Python wrapper for the **Google Forms and Google Drive A
 pip install git+https://github.com/rushanksheta/google_api_wrapper.git
 ```
 
-[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+## License [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
