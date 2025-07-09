@@ -19,4 +19,4 @@ A lightweight, scalable Python wrapper for the **Google Forms and Google Drive A
 ### 1️⃣ Using `pip` from GitHub
 
 ```bash
-pip install git+https://https://github.com/rushanksheta/google_api_wrapper.git
+pip install git+https://github.com/rushanksheta/google_api_wrapper.git
