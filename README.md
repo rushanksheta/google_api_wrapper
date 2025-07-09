@@ -21,4 +21,5 @@ pip install git+https://github.com/rushanksheta/google_api_wrapper.git
 
 ## License
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+This project is licensed under the **Apache License 2.0**
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
