@@ -4,8 +4,8 @@ from ..auth.authenticate import Authenticator  # You should have a credentials.p
 import io
 
 class GDrive():
-    def __init__(self, token_fpath):
-        self.authenticator = Authenticator(token_fpath)
+    def __init__(self, **kwargs):
+        self.authenticator = Authenticator(**kwargs)
 
     def get_drive_service(self):
         creds = self.authenticator.authenticate()

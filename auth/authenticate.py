@@ -5,18 +5,19 @@ from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 
 class Authenticator():
-    def __init__(self, token_fpath):
-        self.token_fpath = token_fpath
+    def __init__(self, token_dir, token_fname='token.pkl'):
+        self.token_dir = token_dir
+        self.token_fname = token_fname
 
         self.default_scopes = [
             "https://www.googleapis.com/auth/forms.responses.readonly",
             "https://www.googleapis.com/auth/drive.readonly"
         ]
 
-    def authenticate(self, token_fname='token.pkl'):
+    def authenticate(self):
         # Resolve the directory where *this module* resides
         # base_dir = os.path.dirname(os.path.abspath(__file__))
-        token_path = os.path.join(self.token_fpath, token_fname)
+        token_path = os.path.join(self.token_dir, self.token_fname)
 
         # if not os.path.exists(token_path):
         #     raise RuntimeError(f"Token file not found at: {token_path}. Please generate it locally and upload config folder.")
@@ -38,14 +39,15 @@ class Authenticator():
 
         return creds
     
-    def generate_token(self, client_secret_path, token_fname='token.pkl', SCOPES: list=[]):
+    def generate_token(self, client_secret_dir, client_secret_fname='client_secret.json', SCOPES: list=[]):
         # Base path of the current module's directory
         # base_dir = os.path.dirname(os.path.abspath(__file__))
 
         # Resolve full paths relative to the module
         # client_secret_path = os.path.join(base_dir, client_secret_dir, 'client_secret.json')
         # token_save_path = os.path.join(base_dir, token_save_dir, 'token.pkl')
-        token_path = os.path.join(self.token_fpath, token_fname)
+        token_path = os.path.join(self.token_dir, self.token_fname)
+        client_secret_path = os.path.join(client_secret_dir, client_secret_fname)
         # client_secret_path = os.path.join(client_secret_fpath, client_secret_fpath)
 
         # Start OAuth flow
@@ -59,4 +61,4 @@ class Authenticator():
         with open(token_path, 'wb') as token_file:
             pickle.dump(creds, token_file)
 
-        print(f"✅ {self.token_fpath} generated successfully.")
+        print(f"✅ {token_path} generated successfully.")

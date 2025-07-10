@@ -2,8 +2,8 @@ from googleapiclient.discovery import build
 from ..auth.authenticate import Authenticator
 
 class GForms():
-    def __init__(self, token_fpath):
-        self.authenticator = Authenticator(token_fpath)
+    def __init__(self, **kwargs):
+        self.authenticator = Authenticator(**kwargs)
 
     def get_forms_service(self):
         creds = self.authenticator.authenticate()
