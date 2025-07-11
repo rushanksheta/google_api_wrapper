@@ -11,7 +11,7 @@ setup(
     author='Rushank Sheta',
     author_email='sheta.rushank@gmail.com',
     description='A wrapper for Google Forms and Drive APIs for data workflows',
-    url='https://github.com/yourusername/google_api_wrapper',
+    url='https://github.com/rushanksheta/google_api_wrapper',
     classifiers=[
         'Programming Language :: Python :: 3',
         'License :: OSI Approved :: MIT License',
