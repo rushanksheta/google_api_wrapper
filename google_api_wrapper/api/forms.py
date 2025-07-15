@@ -1,3 +1,6 @@
+from datetime import datetime as dt
+
+
 from googleapiclient.discovery import build
 from ..auth.authenticate import Authenticator
 
@@ -66,9 +69,14 @@ class GForms():
                     if "question_title" in include_fields:
                         row["question_title"] = question_map.get(qid, qid)
 
+                    # if "textAnswers" in answer and "textAnswers" in include_fields:
+                    #     text_list = answer["textAnswers"].get("answers", [])
+                    #     row["answer"] = text_list[0].get("value") if text_list else None
+
                     if "textAnswers" in answer and "textAnswers" in include_fields:
                         text_list = answer["textAnswers"].get("answers", [])
-                        row["answer"] = text_list[0].get("value") if text_list else None
+                        row["answer"] = ", ".join([x.get("value", "") for x in text_list]) if text_list else None
+
 
 
                     if "fileUploadAnswers" in answer and "fileUploadAnswers" in include_fields:
@@ -82,17 +90,111 @@ class GForms():
                         if dates:
                             d = dates[0]
                             if all(k in d for k in ("year", "month", "day")):
-                                row["answer_date"] = date(d["year"], d["month"], d["day"]).isoformat()
+                                row["answer_date"] = dt.date(d["year"], d["month"], d["day"]).isoformat()
 
                     if "timeAnswers" in answer and "timeAnswers" in include_fields:
                         times = answer["timeAnswers"].get("answers", [])
                         if times:
                             t = times[0]
                             if t.get("hours") is not None and t.get("minutes") is not None:
-                                row["answer_time"] = time(t["hours"], t["minutes"]).strftime("%H:%M")
+                                row["answer_time"] = dt.time(t["hours"], t["minutes"]).strftime("%H:%M")
         
                     rows.append(row)
             else:
                 rows.append(base_row)
 
         return rows
+    
+    def extract_answer_value(self, answer, include_fields=None):
+        """
+        Helper function to extract the answer value(s) based on type.
+        For 'wide' format, just returns a display value for the cell.
+        For 'long' format, fill dict fields as needed.
+        """
+        if not answer:
+            return ""
+        # if "textAnswers" in answer:
+        #     vals = [a.get("value", "") for a in answer["textAnswers"].get("answers", [])]
+        #     return "\n".join(vals)
+        
+        if "textAnswers" in answer:
+            vals = [a.get("value", "") for a in answer["textAnswers"].get("answers", [])]
+            return ", ".join(vals)
+
+        if "fileUploadAnswers" in answer:
+            vals = [f.get("fileName", "") for f in answer["fileUploadAnswers"].get("answers", [])]
+            return ", ".join(vals)
+        if "dateAnswers" in answer:
+            vals = [date(d["year"], d["month"], d["day"]).isoformat()
+                    for d in answer["dateAnswers"].get("answers", [])
+                    if all(k in d for k in ("year", "month", "day"))]
+            return ", ".join(vals)
+        if "timeAnswers" in answer:
+            vals = [time(t["hours"], t["minutes"]).strftime("%H:%M")
+                    for t in answer["timeAnswers"].get("answers", [])
+                    if t.get("hours") is not None and t.get("minutes") is not None]
+            return ", ".join(vals)
+        return ""
+
+
+    def extract_form_data_new(self, form_id: str, include_fields: list = [], format: str = "long"):
+        responses = self.fetch_responses(form_id)
+        question_map = self.get_question_id_title_map(form_id)
+        question_ids = list(question_map.keys())
+        question_titles = [question_map[qid] for qid in question_ids]
+        rows = []
+
+        if format == "long":
+            for res in responses:
+                base_row = {
+                    "response_id": res.get("responseId"),
+                    "create_time": res.get("createTime"),
+                    "submit_time": res.get("lastSubmittedTime"),
+                }
+                answers = res.get("answers", {})
+                for qid, answer in answers.items():
+                    row = base_row.copy()
+                    # Only add fields explicitly mentioned in include_fields
+                    if "question_id" in include_fields:
+                        row["question_id"] = qid
+                    if "question_title" in include_fields:
+                        row["question_title"] = question_map.get(qid, qid)
+                    # Reuse value extraction logic
+                    if "textAnswers" in answer and "textAnswers" in include_fields:
+                        row["answer"] = self.extract_answer_value(answer)
+                    if "fileUploadAnswers" in answer and "fileUploadAnswers" in include_fields:
+                        row["fileIds"] = [f.get("fileId") for f in answer["fileUploadAnswers"].get("answers", [])]
+                        row["fileNames"] = [f.get("fileName") for f in answer["fileUploadAnswers"].get("answers", [])]
+                        row["mimeTypes"] = [f.get("mimeType") for f in answer["fileUploadAnswers"].get("answers", [])]
+                    if "dateAnswers" in answer and "dateAnswers" in include_fields:
+                        dates = answer["dateAnswers"].get("answers", [])
+                        if dates:
+                            d = dates[0]
+                            if all(k in d for k in ("year", "month", "day")):
+                                row["answer_date"] = dt.date(d["year"], d["month"], d["day"]).isoformat()
+                    if "timeAnswers" in answer and "timeAnswers" in include_fields:
+                        times = answer["timeAnswers"].get("answers", [])
+                        if times:
+                            t = times[0]
+                            if t.get("hours") is not None and t.get("minutes") is not None:
+                                row["answer_time"] = dt.time(t["hours"], t["minutes"]).strftime("%H:%M")
+                    rows.append(row)
+            return rows
+
+        elif format == "wide":
+            for res in responses:
+                row = {
+                    "response_id": res.get("responseId"),
+                    "create_time": res.get("createTime"),
+                    "submit_time": res.get("lastSubmittedTime"),
+                }
+                answers = res.get("answers", {})
+                for qid, qtext in zip(question_ids, question_titles):
+                    answer = answers.get(qid, {})
+                    # Reuse the same extraction logic
+                    row[qtext] = self.extract_answer_value(answer)
+                rows.append(row)
+            return rows
+
+        else:
+            raise ValueError("Unknown format: must be 'long' or 'wide'")
