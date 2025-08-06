@@ -1,12 +1,17 @@
 from datetime import datetime as dt
 
+from beartype import beartype
 
 from googleapiclient.discovery import build
+
 from ..auth.authenticate import Authenticator
 
+
+@beartype
 class GForms():
-    def __init__(self, **kwargs):
-        self.authenticator = Authenticator(**kwargs)
+    def __init__(self, authenticator: Authenticator):
+        self.authenticator = authenticator
+
 
     def get_forms_service(self):
         creds = self.authenticator.authenticate()

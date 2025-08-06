@@ -1,64 +1,83 @@
-import os
 import pickle
+from pathlib import Path
+from beartype import beartype
+
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
-from googleapiclient.discovery import build
+from google.oauth2 import service_account
 
-class Authenticator():
-    def __init__(self, token_dir, token_fname='token.pkl'):
-        self.token_dir = token_dir
-        self.token_fname = token_fname
+
+@beartype
+class Authenticator:
+    def __init__(self, secrets_dir: str,
+                 service_account_fname: str = 'databricks-ingestion-sa.json',
+                 oauth_token_fname: str = 'token.pkl',
+                 IMPERSONATE_USER: str = None):
+        
+        self.secrets_dir = Path(secrets_dir)
+        self.service_account_path = self.secrets_dir / service_account_fname
+        self.oauth_token_path = self.secrets_dir / oauth_token_fname
+
+        self.IMPERSONATE_USER = IMPERSONATE_USER
 
         self.default_scopes = [
-            "https://www.googleapis.com/auth/forms.responses.readonly",
-            "https://www.googleapis.com/auth/drive.readonly"
+            "https://www.googleapis.com/auth/drive",  # full access
+            "https://www.googleapis.com/auth/forms.responses.readonly"
         ]
+        self.creds = None
 
-    def authenticate(self):
-        # Resolve the directory where *this module* resides
-        # base_dir = os.path.dirname(os.path.abspath(__file__))
-        token_path = os.path.join(self.token_dir, self.token_fname)
+    def authenticate(self, method: str = 'service_account', SCOPES: list = []):
+        scopes = self.default_scopes if not SCOPES else SCOPES
 
-        # if not os.path.exists(token_path):
-        #     raise RuntimeError(f"Token file not found at: {token_path}. Please generate it locally and upload config folder.")
+        if method == 'service_account':
+            if not self.IMPERSONATE_USER: 
+                raise AttributeError("Missing attribute: IMPERSONATE_USER")
+            try:
+                self.creds = service_account.Credentials.from_service_account_file(
+                    self.service_account_path,
+                    scopes=scopes
+                ).with_subject(self.IMPERSONATE_USER)
+                print(f"✅ Authenticated with service account: {self.service_account_path}")
+                return self.creds
+            except Exception as e:
+                print(f"XXXX> Service account authentication failed: {e}")
+                return None
 
-        try:
-            with open(token_path, 'rb') as token_file:
-                creds = pickle.load(token_file)
+        elif method == 'oauth2':
+            try:
+                with open(self.oauth_token_path, 'rb') as token_file:
+                    self.creds = pickle.load(token_file)
 
-            if creds and creds.expired and creds.refresh_token:
-                print("Token is expired, refreshing...")
-                creds.refresh(Request())
+                if self.creds and self.creds.expired and self.creds.refresh_token:
+                    print("Token is expired, refreshing...")
+                    self.creds.refresh(Request())
+                    with open(self.oauth_token_path, 'wb') as token_file:
+                        pickle.dump(self.creds, token_file)
+                    print(f"✅ {self.oauth_token_path} updated successfully.")
 
-                with open(token_path, 'wb') as token_file:
-                    pickle.dump(creds, token_file)
-                print(f"✅ {token_path} updated successfully.")
+                print(f"✅ Authenticated with OAuth token: {self.oauth_token_path}")
+                return self.creds
 
-        except Exception as e:
-            print(f"Error Loading {token_path}: {e}")
+            except Exception as e:
+                print(f"XXXX> OAuth2 authentication failed: {e}")
+                return None
 
-        return creds
-    
-    def generate_token(self, client_secret_dir, client_secret_fname='client_secret.json', SCOPES: list=[]):
-        # Base path of the current module's directory
-        # base_dir = os.path.dirname(os.path.abspath(__file__))
+        else:
+            print(f"XXXX> Invalid method '{method}'. Use 'service_account' or 'oauth2'.")
+            return None
 
-        # Resolve full paths relative to the module
-        # client_secret_path = os.path.join(base_dir, client_secret_dir, 'client_secret.json')
-        # token_save_path = os.path.join(base_dir, token_save_dir, 'token.pkl')
-        token_path = os.path.join(self.token_dir, self.token_fname)
-        client_secret_path = os.path.join(client_secret_dir, client_secret_fname)
-        # client_secret_path = os.path.join(client_secret_fpath, client_secret_fpath)
+    def generate_token(self, client_secret_dir: str, client_secret_fname: str = 'client_secret.json', SCOPES: list = []):
+        client_secret_path = Path(client_secret_dir) / client_secret_fname
+        scopes = self.default_scopes if not SCOPES else SCOPES
 
-        # Start OAuth flow
         flow = InstalledAppFlow.from_client_secrets_file(
-            client_secret_path,
-            scopes=self.default_scopes if not SCOPES else SCOPES
+            str(client_secret_path),
+            scopes=scopes
         )
-        creds = flow.run_local_server(port=8080, prompt='consent', access_type='offline')
+        self.creds = flow.run_local_server(port=8080, prompt='consent', access_type='offline')
 
-        # Save credentials to token file
-        with open(token_path, 'wb') as token_file:
-            pickle.dump(creds, token_file)
+        with open(self.oauth_token_path, 'wb') as token_file:
+            pickle.dump(self.creds, token_file)
 
-        print(f"✅ {token_path} generated successfully.")
+        print(f"✅ Token generated and saved to {self.oauth_token_path}")
+        return self.creds
