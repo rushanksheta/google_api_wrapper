@@ -1,0 +1,25 @@
+Metadata-Version: 2.4
+Name: google_api_wrapper
+Version: 0.1.1
+Summary: A wrapper for Google Forms and Drive APIs for data workflows
+Home-page: https://github.com/rushanksheta/google_api_wrapper
+Author: Rushank Sheta
+Author-email: sheta.rushank@gmail.com
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: Apache License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.9
+License-File: LICENSE
+Requires-Dist: google-api-python-client==1.7.2
+Requires-Dist: google-auth==2.16.1
+Requires-Dist: google-auth-httplib2==0.0.3
+Requires-Dist: google-auth-oauthlib==0.4.1
+Requires-Dist: beartype==0.21.0
+Dynamic: author
+Dynamic: author-email
+Dynamic: classifier
+Dynamic: home-page
+Dynamic: license-file
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary

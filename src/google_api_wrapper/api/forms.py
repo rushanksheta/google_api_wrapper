@@ -1,11 +1,13 @@
-from datetime import datetime as dt
+from datetime import datetime as dt, date, time
 
+from typing import Optional, Annotated
 from beartype import beartype
+from beartype.vale import Is
 
 from googleapiclient.discovery import build
 
 from ..auth.authenticate import Authenticator
-
+from ..utils.watermark import _is_rfc3339
 
 @beartype
 class GForms():
@@ -17,13 +19,19 @@ class GForms():
         creds = self.authenticator.authenticate()
         return build('forms', 'v1', credentials=creds)
 
-    def fetch_responses(self, form_id: str):
+    def fetch_responses(self, form_id: str, after_watermark: Optional[Annotated[str, Is[_is_rfc3339]]] = None) -> list:
         service = self.get_forms_service()
+
+        params = {}
+        if after_watermark:
+            # iso = after.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+            params["filter"] = f"timestamp >= {after_watermark}"
+
         all_responses = []
         page_token = None
 
         while True:
-            request = service.forms().responses().list(formId=form_id, pageToken=page_token)
+            request = service.forms().responses().list(formId=form_id, pageToken=page_token, **params)
             response = request.execute()
 
             all_responses.extend(response.get('responses', []))
@@ -50,8 +58,8 @@ class GForms():
         # print(form.get("items", []))  # Debugging output
         return id_to_title
     
-    def extract_form_data(self, form_id: str, include_fields: list = []):
-        responses = self.fetch_responses(form_id)
+    def extract_form_data(self, form_id: str, include_fields: list = [], after_watermark: Optional[Annotated[str, Is[_is_rfc3339]]] = None):
+        responses = self.fetch_responses(form_id, after_watermark=after_watermark)
         question_map = self.get_question_id_title_map(form_id)
         rows = []
 

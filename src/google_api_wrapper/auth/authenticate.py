@@ -1,6 +1,7 @@
 import pickle
 from pathlib import Path
 from beartype import beartype
+from typing import Literal
 
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
@@ -12,12 +13,13 @@ class Authenticator:
     def __init__(self, secrets_dir: str,
                  service_account_fname: str = 'databricks-ingestion-sa.json',
                  oauth_token_fname: str = 'token.pkl',
+                 method: Literal['oauth2', 'service_account'] = 'oauth2',
                  IMPERSONATE_USER: str = None):
         
         self.secrets_dir = Path(secrets_dir)
         self.service_account_path = self.secrets_dir / service_account_fname
         self.oauth_token_path = self.secrets_dir / oauth_token_fname
-
+        self.method = method
         self.IMPERSONATE_USER = IMPERSONATE_USER
 
         self.default_scopes = [
@@ -26,10 +28,10 @@ class Authenticator:
         ]
         self.creds = None
 
-    def authenticate(self, method: str = 'service_account', SCOPES: list = []):
+    def authenticate(self, SCOPES: list = []):
         scopes = self.default_scopes if not SCOPES else SCOPES
 
-        if method == 'service_account':
+        if self.method == 'service_account':
             if not self.IMPERSONATE_USER: 
                 raise AttributeError("Missing attribute: IMPERSONATE_USER")
             try:
@@ -43,7 +45,7 @@ class Authenticator:
                 print(f"XXXX> Service account authentication failed: {e}")
                 return None
 
-        elif method == 'oauth2':
+        elif self.method == 'oauth2':
             try:
                 with open(self.oauth_token_path, 'rb') as token_file:
                     self.creds = pickle.load(token_file)

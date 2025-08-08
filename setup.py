@@ -6,7 +6,8 @@ with open("requirements.txt") as f:
 setup(
     name='google_api_wrapper',
     version='0.1.1',
-    packages=find_packages(),
+    package_dir={'': 'src'},
+    packages=find_packages(where='src'),
     install_requires=requirements,
     author='Rushank Sheta',
     author_email='sheta.rushank@gmail.com',
@@ -14,8 +15,8 @@ setup(
     url='https://github.com/rushanksheta/google_api_wrapper',
     classifiers=[
         'Programming Language :: Python :: 3',
-        'License :: OSI Approved :: MIT License',
+        'License :: OSI Approved :: Apache License',
         'Operating System :: OS Independent',
     ],
-    python_requires='>=3.8',
+    python_requires='>=3.9',
 )
