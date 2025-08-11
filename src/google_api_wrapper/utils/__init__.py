@@ -1,1 +1,1 @@
-from .watermark import *
+from .watermark import DeltaWatermarkStore
