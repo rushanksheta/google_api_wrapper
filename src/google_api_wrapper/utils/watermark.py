@@ -1,15 +1,16 @@
 from dataclasses import dataclass
 from typing import Optional, Iterable, Dict, List, Literal, Annotated
 from datetime import datetime, date, time, timezone
+from delta.tables import DeltaTable
 # import json, os, time as _time
 
 from pyspark.sql import SparkSession
+from pyspark.sql import SparkSession, functions as F
 
 from beartype import beartype
 from beartype.vale import Is
 
 # --------- Utilities ---------
-DEFAULT_WATERMARK = datetime(2000, 1, 1, tzinfo=timezone.utc)
 
 def _parse_rfc3339(ts: str) -> datetime:
     # Accept...Z or +00:00
@@ -26,6 +27,12 @@ def _is_rfc3339(s: str) -> bool:
     except ValueError:
         return False
     
+
+# DEFAULT_WATERMARK = datetime(2000, 1, 1, tzinfo=timezone.utc)
+DEFAULT_TIME_ZONE = "America/New_York"
+RFC3339ZStr = Annotated[str, Is[_is_rfc3339]]
+
+
 # @dataclass
 # class FileWatermarkStore:
 #     """Simple JSON watermark: {'last_submit_ts': '<RFC3339Z>'}"""
@@ -54,14 +61,28 @@ def _is_rfc3339(s: str) -> bool:
 
 @beartype
 class DeltaWatermarkStore:
-    def __init__(self, spark: SparkSession, table: str):
+    def __init__(self, spark: SparkSession, table: str, default_tzone: str = DEFAULT_TIME_ZONE):
         self.spark, self.table = spark, table
+        self.default_tzone = default_tzone
 
-    def get(self, key: str) -> Optional[datetime]:
-        row = self.spark.sql(f"SELECT value_ts FROM {self.table} WHERE key = '{key}'").first()
-        return row.value_ts if row else _to_rfc3339(DEFAULT_WATERMARK)
+        self.spark.conf.set("spark.sql.session.timeZone", "UTC")
+
+    # def get(self, key: str) -> Optional[datetime]:
+    #     row = self.spark.sql(f"SELECT value_ts FROM {self.table} WHERE key = '{key}'").first()
+    #     return row.value_ts if row else _to_rfc3339(DEFAULT_WATERMARK)
     
-    def set_if_newer(self, key: str, rfc_ts: Annotated[str, Is[_is_rfc3339]]) -> None:
+    def get_rfc3339(self, key: str) -> Optional[str]:
+        """
+        Return the stored RFC3339Z string for reuse in the Forms filter.
+        """
+        df = (self.spark.table(self.table)
+              .where(F.col("key") == F.lit(key))
+              .select("ts_rfc3339")
+              .limit(1))
+        row = df.first()
+        return row.ts_rfc3339 if row else None
+    
+    def set_if_newer(self, key: str, rfc_ts: RFC3339ZStr) -> None:
         # watermark = _to_rfc3339(ts) #ts.isoformat().replace("+00:00", "Z")
         self.spark.sql(f"""
           MERGE INTO {self.table} t
@@ -73,3 +94,34 @@ class DeltaWatermarkStore:
             THEN INSERT (key, value_ts, updated_at, updated_by)
                  VALUES (s.key, s.new_ts, current_timestamp(), current_user())
         """)
+
+    @beartype
+    def set_kv(self, key: str, rfc_ts: RFC3339ZStr) -> None:
+
+        src = (self.spark.createDataFrame([(key, rfc_ts)], "key STRING, rfc STRING")
+               .select(
+                   "key",
+                   F.col("rfc").alias("new_ts_rfc3339"),
+                   F.to_timestamp("rfc").alias("new_ts_utc"),
+                   F.from_utc_timestamp(F.to_timestamp("rfc"), self.default_tzone).alias("new_ts_et"),
+               ))
+
+        dt = DeltaTable.forName(self.spark, self.table)
+        (dt.alias("t")
+           .merge(src.alias("s"), "t.key = s.key")
+           .whenMatchedUpdate(set={
+               "ts": "s.new_ts_utc",
+               "ts_rfc3339": "s.new_ts_rfc3339",
+               "ts_est": "s.new_ts_et",
+               "updated_at": F.current_timestamp().cast("timestamp"),
+               "updated_by": F.current_user(),
+           })
+           .whenNotMatchedInsert(values={
+               "key": "s.key",
+               "ts": "s.new_ts_utc",
+               "ts_rfc3339": "s.new_ts_rfc3339",
+               "ts_est": "s.new_ts_et",
+               "updated_at": F.current_timestamp().cast("timestamp"),
+               "updated_by": F.current_user(),
+           })
+           .execute())
