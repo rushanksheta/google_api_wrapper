@@ -1,13 +1,15 @@
 from dataclasses import dataclass
-from typing import Optional, Iterable, Dict, List, Literal
+from typing import Optional, Iterable, Dict, List, Literal, Annotated
 from datetime import datetime, date, time, timezone
 # import json, os, time as _time
 
 from pyspark.sql import SparkSession
 
 from beartype import beartype
+from beartype.vale import Is
 
 # --------- Utilities ---------
+DEFAULT_WATERMARK = datetime(2000, 1, 1, tzinfo=timezone.utc)
 
 def _parse_rfc3339(ts: str) -> datetime:
     # Accept...Z or +00:00
@@ -57,13 +59,13 @@ class DeltaWatermarkStore:
 
     def get(self, key: str) -> Optional[datetime]:
         row = self.spark.sql(f"SELECT value_ts FROM {self.table} WHERE key = '{key}'").first()
-        return row.value_ts if row else None
-
-    def set_if_newer(self, key: str, ts: datetime) -> None:
-        watermark = _to_rfc3339(ts) #ts.isoformat().replace("+00:00", "Z")
+        return row.value_ts if row else _to_rfc3339(DEFAULT_WATERMARK)
+    
+    def set_if_newer(self, key: str, rfc_ts: Annotated[str, Is[_is_rfc3339]]) -> None:
+        # watermark = _to_rfc3339(ts) #ts.isoformat().replace("+00:00", "Z")
         self.spark.sql(f"""
           MERGE INTO {self.table} t
-          USING (SELECT '{key}' AS key, to_timestamp('{watermark}') AS new_ts) s
+          USING (SELECT '{key}' AS key, to_timestamp('{rfc_ts}') AS new_ts) s
           ON t.key = s.key
           WHEN MATCHED AND s.new_ts > t.value_ts
             THEN UPDATE SET value_ts = s.new_ts, updated_at = current_timestamp(), updated_by = current_user()

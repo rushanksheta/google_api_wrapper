@@ -25,7 +25,7 @@ class GForms():
         params = {}
         if after_watermark:
             # iso = after.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
-            params["filter"] = f"timestamp >= {after_watermark}"
+            params["filter"] = f"timestamp > {after_watermark}"
 
         all_responses = []
         page_token = None
