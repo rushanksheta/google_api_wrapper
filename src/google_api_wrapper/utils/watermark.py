@@ -104,7 +104,7 @@ class DeltaWatermarkStore:
     #     row = self.spark.sql(f"SELECT value_ts FROM {self.table} WHERE key = '{key}'").first()
     #     return row.value_ts if row else _to_rfc3339(DEFAULT_WATERMARK)
     
-    def get_rfc3339(self, key: str) -> Optional[str]:
+    def get_watermark(self, key: str) -> Optional[str]:
         """
         Return the stored RFC3339Z string for reuse in the Forms filter.
         """
@@ -115,21 +115,21 @@ class DeltaWatermarkStore:
         row = df.first()
         return row.ts_rfc3339 if row else None
     
-    def set_if_newer(self, key: str, rfc_ts: RFC3339ZStr) -> None:
-        # watermark = _to_rfc3339(ts) #ts.isoformat().replace("+00:00", "Z")
-        self.spark.sql(f"""
-          MERGE INTO {self.table} t
-          USING (SELECT '{key}' AS key, to_timestamp('{rfc_ts}') AS new_ts) s
-          ON t.key = s.key
-          WHEN MATCHED AND s.new_ts > t.value_ts
-            THEN UPDATE SET value_ts = s.new_ts, updated_at = current_timestamp(), updated_by = current_user()
-          WHEN NOT MATCHED
-            THEN INSERT (key, value_ts, updated_at, updated_by)
-                 VALUES (s.key, s.new_ts, current_timestamp(), current_user())
-        """)
+    # def set_if_newer(self, key: str, rfc_ts: RFC3339ZStr) -> None:
+    #     # watermark = _to_rfc3339(ts) #ts.isoformat().replace("+00:00", "Z")
+    #     self.spark.sql(f"""
+    #       MERGE INTO {self.table} t
+    #       USING (SELECT '{key}' AS key, to_timestamp('{rfc_ts}') AS new_ts) s
+    #       ON t.key = s.key
+    #       WHEN MATCHED AND s.new_ts > t.value_ts
+    #         THEN UPDATE SET value_ts = s.new_ts, updated_at = current_timestamp(), updated_by = current_user()
+    #       WHEN NOT MATCHED
+    #         THEN INSERT (key, value_ts, updated_at, updated_by)
+    #              VALUES (s.key, s.new_ts, current_timestamp(), current_user())
+    #     """)
 
     @beartype
-    def set_kv(self, key: str, rfc_ts: RFC3339ZStr) -> None:
+    def set_watermark(self, key: str, rfc_ts: RFC3339ZStr) -> None:
 
         src = (self.spark.createDataFrame([(key, rfc_ts)], "key STRING, rfc STRING")
                .select(

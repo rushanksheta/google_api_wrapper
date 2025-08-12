@@ -1,6 +1,6 @@
 from datetime import datetime as dt, date, time
 
-from typing import Optional, Annotated
+from typing import Optional, Annotated, Literal
 from beartype import beartype
 from beartype.vale import Is
 
@@ -58,7 +58,7 @@ class GForms():
         # print(form.get("items", []))  # Debugging output
         return id_to_title
     
-    def extract_form_data(self, form_id: str, include_fields: list = [], after_watermark: Optional[Annotated[str, Is[_is_rfc3339]]] = None):
+    def extract_form_data_old(self, form_id: str, include_fields: list = [], after_watermark: Optional[Annotated[str, Is[_is_rfc3339]]] = None):
         responses = self.fetch_responses(form_id, after_watermark=after_watermark)
         question_map = self.get_question_id_title_map(form_id)
         rows = []
@@ -150,8 +150,9 @@ class GForms():
         return ""
 
 
-    def extract_form_data_new(self, form_id: str, include_fields: list = [], format: str = "long"):
-        responses = self.fetch_responses(form_id)
+    def extract_form_data(self, form_id: str, include_fields: list = [], format: Literal['long', 'wide'] = "wide", after_watermark: Optional[Annotated[str, Is[_is_rfc3339]]] = None):
+        # include_fields = ['question_title', 'textAnswers', 'fileUploadAnswers']
+        responses = self.fetch_responses(form_id, after_watermark=after_watermark)
         question_map = self.get_question_id_title_map(form_id)
         question_ids = list(question_map.keys())
         question_titles = [question_map[qid] for qid in question_ids]
