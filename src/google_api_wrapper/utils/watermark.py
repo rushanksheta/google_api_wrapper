@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import Optional, Iterable, Dict, List, Literal, Annotated, Union
 from datetime import datetime, date, time, timezone
 from delta.tables import DeltaTable
+import re
 # import json, os, time as _time
 
 # from pyspark.sql import SparkSession
@@ -22,21 +23,35 @@ except ImportError:
 
 # --------- Utilities ---------
 
-def _parse_rfc3339(ts: str) -> datetime:
-    # Accept...Z or +00:00
-    return datetime.fromisoformat(ts.replace("Z", "+00:00"))
-
-def _to_rfc3339(dt_obj: datetime) -> str:
-    return dt_obj.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
-
 def _is_rfc3339(s: str) -> bool:
+    """
+    Strict RFC3339 UTC ('Z') validator allowing only 0, 3, 6, or 9 fractional digits.
+    """
+    # Shape: yyyy-mm-ddThh:mm:ss(.ddd|.dddddd|.ddddddddd)?Z
+    m = re.match(
+        r"^\d{4}-\d{2}-\d{2}T"
+        r"\d{2}:\d{2}:\d{2}"
+        r"(?:\.(\d{3}|\d{6}|\d{9}))?Z$",
+        s,
+    )
+    if not m:
+        return False
+
+    # Final sanity parse (normalize to <=6 fractional digits for Python)
     try:
-        # tolerate trailing 'Z'
+        if "." in s:
+            head, fracZ = s.split(".", 1)
+            frac = fracZ[:-1]  # drop trailing 'Z'
+            if len(frac) == 3:      # ms -> μs
+                frac = frac + "000"
+            elif len(frac) == 9:    # ns -> μs (truncate)
+                frac = frac[:6]
+            # len==6 -> μs, keep as is
+            s = f"{head}.{frac}Z"
         datetime.fromisoformat(s.replace("Z", "+00:00"))
         return True
     except ValueError:
         return False
-    
 
 # DEFAULT_WATERMARK = datetime(2000, 1, 1, tzinfo=timezone.utc)
 DEFAULT_TIME_ZONE = "America/New_York"
@@ -45,7 +60,12 @@ SparkSessionType = Union[
     *(t for t in (ClassicSpark, ConnectSpark) if t is not None)
 ]
 
+def _parse_rfc3339(ts: RFC3339ZStr) -> datetime:
+    # Accept...Z or +00:00
+    return datetime.fromisoformat(ts.replace("Z", "+00:00"))
 
+def _to_rfc3339(dt_obj: datetime) -> RFC3339ZStr:
+    return dt_obj.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
 # @dataclass
 # class FileWatermarkStore:
 #     """Simple JSON watermark: {'last_submit_ts': '<RFC3339Z>'}"""
