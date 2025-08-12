@@ -1,14 +1,24 @@
 from dataclasses import dataclass
-from typing import Optional, Iterable, Dict, List, Literal, Annotated
+from typing import Optional, Iterable, Dict, List, Literal, Annotated, Union
 from datetime import datetime, date, time, timezone
 from delta.tables import DeltaTable
 # import json, os, time as _time
 
-from pyspark.sql import SparkSession
+# from pyspark.sql import SparkSession
 from pyspark.sql import SparkSession, functions as F
 
 from beartype import beartype
 from beartype.vale import Is
+
+try:
+    from pyspark.sql.session import SparkSession as ClassicSpark
+except ImportError:
+    ClassicSpark = None
+
+try:
+    from pyspark.sql.connect.session import SparkSession as ConnectSpark
+except ImportError:
+    ConnectSpark = None
 
 # --------- Utilities ---------
 
@@ -31,6 +41,9 @@ def _is_rfc3339(s: str) -> bool:
 # DEFAULT_WATERMARK = datetime(2000, 1, 1, tzinfo=timezone.utc)
 DEFAULT_TIME_ZONE = "America/New_York"
 RFC3339ZStr = Annotated[str, Is[_is_rfc3339]]
+SparkSessionType = Union[
+    *(t for t in (ClassicSpark, ConnectSpark) if t is not None)
+]
 
 
 # @dataclass
@@ -61,7 +74,7 @@ RFC3339ZStr = Annotated[str, Is[_is_rfc3339]]
 
 @beartype
 class DeltaWatermarkStore:
-    def __init__(self, spark: SparkSession, table: str, default_tzone: str = DEFAULT_TIME_ZONE):
+    def __init__(self, spark: SparkSessionType, table: str, default_tzone: str = DEFAULT_TIME_ZONE):
         self.spark, self.table = spark, table
         self.default_tzone = default_tzone
 
