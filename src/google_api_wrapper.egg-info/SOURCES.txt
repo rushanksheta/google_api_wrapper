@@ -13,3 +13,5 @@ src/google_api_wrapper/api/drive.py
 src/google_api_wrapper/api/forms.py
 src/google_api_wrapper/auth/__init__.py
 src/google_api_wrapper/auth/authenticate.py
+src/google_api_wrapper/utils/__init__.py
+src/google_api_wrapper/utils/watermark.py
