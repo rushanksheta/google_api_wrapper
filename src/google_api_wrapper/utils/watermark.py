@@ -56,9 +56,7 @@ def _is_rfc3339(s: str) -> bool:
 # DEFAULT_WATERMARK = datetime(2000, 1, 1, tzinfo=timezone.utc)
 DEFAULT_TIME_ZONE = "America/New_York"
 RFC3339ZStr = Annotated[str, Is[_is_rfc3339]]
-SparkSessionType = Union[
-    *(t for t in (ClassicSpark, ConnectSpark) if t is not None)
-]
+SparkSessionType = Union[tuple(t for t in (ClassicSpark, ConnectSpark) if t is not None)]
 
 def _parse_rfc3339(ts: RFC3339ZStr) -> datetime:
     # Accept...Z or +00:00
