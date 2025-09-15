@@ -1,16 +1,9 @@
-# Google API Client Libraries (compatible pins)
 google-api-python-client
 google-auth  
 google-auth-httplib2
 google-auth-oauthlib
-
-# Core dependencies for GCP
 google-api-core
 google-cloud-storage
-
-# Type checking
 beartype
-
-# MISC
 pandas
 delta-spark

@@ -1,3 +1,31 @@
 [build-system]
-requires = ["setuptools>=61.0", "wheel"]
+requires = ["setuptools>=61", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}
+
+[project]
+name = "google_api_wrapper"
+version = "0.1.1"
+description = "A wrapper for Google Forms and Drive APIs for data workflows"
+authors = [
+  { name="Rushank Sheta", email="sheta.rushank@gmail.com" }
+]
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "Apache-2.0" }
+dependencies = [
+  "google-api-python-client",
+"google-auth",  
+"google-auth-httplib2",
+"google-auth-oauthlib",
+"google-api-core",
+"google-cloud-storage",
+"beartype",
+"pandas",
+"delta-spark"
+]
+
+[project.urls]
+Homepage = "https://github.com/rushanksheta/google_api_wrapper"

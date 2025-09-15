@@ -2,13 +2,11 @@ Metadata-Version: 2.4
 Name: google_api_wrapper
 Version: 0.1.1
 Summary: A wrapper for Google Forms and Drive APIs for data workflows
-Home-page: https://github.com/rushanksheta/google_api_wrapper
-Author: Rushank Sheta
-Author-email: sheta.rushank@gmail.com
-Classifier: Programming Language :: Python :: 3
-Classifier: License :: OSI Approved :: Apache License
-Classifier: Operating System :: OS Independent
+Author-email: Rushank Sheta <sheta.rushank@gmail.com>
+License: Apache-2.0
+Project-URL: Homepage, https://github.com/rushanksheta/google_api_wrapper
 Requires-Python: >=3.9
+Description-Content-Type: text/markdown
 License-File: LICENSE
 Requires-Dist: google-api-python-client
 Requires-Dist: google-auth
@@ -17,11 +15,88 @@ Requires-Dist: google-auth-oauthlib
 Requires-Dist: google-api-core
 Requires-Dist: google-cloud-storage
 Requires-Dist: beartype
-Dynamic: author
-Dynamic: author-email
-Dynamic: classifier
-Dynamic: home-page
+Requires-Dist: pandas
+Requires-Dist: delta-spark
 Dynamic: license-file
-Dynamic: requires-dist
-Dynamic: requires-python
-Dynamic: summary
+
+# google_api_wrapper
+
+A lightweight, scalable Python wrapper for private **Google Forms and Google Drive APIs**, designed for **ETL pipelines, data workflows, and automation** in data engineering and analytics environments.
+
+---
+
+## Features
+
+- Simplified authentication using OAuth 2.0 with seamless token refresh.  
+- Fetch Google Forms responses in a structured DataFrame-friendly format.  
+- Manage and download files from Google Drive programmatically.  
+- Modular, extensible structure for adding Sheets, Calendar, or Gmail integrations.  
+- Ready for use in **production pipelines** and **educational projects**.
+
+
+## Installation
+
+```bash
+pip install git+https://github.com/rushanksheta/google_api_wrapper.git
+```
+
+## Usage
+
+### 0. Imports
+```python
+from google_api_wrapper import GForms, GDrive, Authenticator
+```
+
+### 1. Create Object of class Autenticator(Service Account or Oauth2)
+- #### 1.1. Using Service Account
+    Default Authentication Method 
+    ```python
+    # Initialize object # default: (sectrets_fname = 'databricks-ingestion-sa.json)'
+    auth_object = Authenticator(secrets_dir='/home/spark/google_creds', secrets_fname='google-sa.json')
+    
+    # Test authentication: success returns Credentials object
+    auth_object.authenticate(method='service_account') # default: (method='service_account')
+    # retruns <google.oauth2.service_account.Credentials at 0x7fefd6c0e7b0>
+    ```
+- #### 1.2. Using Oauth2
+- 
+    Generate a token file for authentication from client secrets(refer to client_secrets-template.json) if expired else use refresh token
+    ```python
+    # Initialize Object
+    auth_object = Authenticator(secrets_dir='/home/spark/google_creds', secrets_fname='token.pkl')
+    
+    # Test authentication: success returns Credentials object
+    auth_object.authenticate(method='oauth2')
+    # retruns <google.oauth2.service_account.Credentials at 0x7fefd6c0e7b0>
+    
+    # Create new pkl file if credentials expired
+    # default scopes are forms.responses.readonly, drive.readonly
+    allow_scopes = [
+            "https://www.googleapis.com/auth/forms",
+            "https://www.googleapis.com/auth/drive"
+        ]
+    auth_object.generate_token(client_secret_dir='/home/spark/google_creds', client_secret_fname='databricks-client-secret.json', SCOPES=allow_scopes)
+    # creates token.pkl file
+    ```
+
+Get Google Form responses for forms with file upload questions(idmap_loc is optional)
+``` python
+GF = GForms(authenticator=auth, idmap_loc='../idmap.json')
+
+responses = GF(authenticator=auth_object, idmap_loc='../idmap.json', rtype='pandas')\
+                .extract_form_data(form_name='YourFormNameFrom_idmap.json')
+```
+
+Get Number of Responses Submitted (wide is the default format, list is the default return format)
+``` python
+print(len(gf.extract_form_data(form_id='YourFormId', include_fields=[], format='wide')))
+```
+
+Use DeltaTable Watermarks to track saved responses
+``` python
+```
+
+## License 
+This project is licensed under the **Apache License 2.0**
+
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
