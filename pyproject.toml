@@ -15,9 +15,17 @@ authors = [
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "Apache-2.0" }
-# dependencies = [
-#   "requests>=2.0.0",
-# ]
+dependencies = [
+  "google-api-python-client",
+"google-auth",  
+"google-auth-httplib2",
+"google-auth-oauthlib",
+"google-api-core",
+"google-cloud-storage",
+"beartype",
+"pandas",
+"delta-spark"
+]
 
 [project.urls]
 Homepage = "https://github.com/rushanksheta/google_api_wrapper"

@@ -5,3 +5,5 @@ google-auth-oauthlib
 google-api-core
 google-cloud-storage
 beartype
+pandas
+delta-spark

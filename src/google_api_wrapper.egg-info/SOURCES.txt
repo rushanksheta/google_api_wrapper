@@ -1,7 +1,6 @@
 LICENSE
 README.md
 pyproject.toml
-setup.py
 src/google_api_wrapper/__init__.py
 src/google_api_wrapper.egg-info/PKG-INFO
 src/google_api_wrapper.egg-info/SOURCES.txt
