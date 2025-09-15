@@ -57,9 +57,7 @@ def _is_rfc3339(s: str) -> bool:
 # DEFAULT_WATERMARK = datetime(2000, 1, 1, tzinfo=timezone.utc)
 DEFAULT_TIME_ZONE = "America/New_York"
 RFC3339ZStr = Annotated[str, Is[_is_rfc3339]]
-SparkSessionType = Union[
-    *(t for t in (ClassicSpark, ConnectSpark) if t is not None)
-]
+SparkSessionType = Union[*(t for t in (ClassicSpark, ConnectSpark) if t is not None)]
 
 def _parse_rfc3339(ts: RFC3339ZStr) -> datetime:
     # Accept...Z or +00:00
@@ -67,31 +65,6 @@ def _parse_rfc3339(ts: RFC3339ZStr) -> datetime:
 
 def _to_rfc3339(dt_obj: datetime) -> RFC3339ZStr:
     return dt_obj.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
-# @dataclass
-# class FileWatermarkStore:
-#     """Simple JSON watermark: {'last_submit_ts': '<RFC3339Z>'}"""
-#     path: str
-#     DEFAULT_WATERMARK: datetime = datetime(2000, 1, 1, tzinfo=timezone.utc)
-
-#     def read(self) -> datetime:
-#         try:
-#             with open(self.path, "r", encoding="utf-8") as f:
-#                 payload = json.load(f)
-#             ts = payload.get("last_submit_ts")
-#             return _parse_rfc3339(ts) if ts else self.DEFAULT_WATERMARK
-#         except FileNotFoundError:
-#             self.write(self.DEFAULT_WATERMARK)
-#             return self.DEFAULT_WATERMARK
-#         except Exception:
-#             # If corrupt, start from epoch but do NOT overwrite automatically
-#             return self.DEFAULT_WATERMARK
-
-#     def write(self, dt_obj: datetime) -> None:
-#         os.makedirs(os.path.dirname(self.path), exist_ok=True)
-#         tmp = self.path + ".tmp"
-#         with open(tmp, "w", encoding="utf-8") as f:
-#             json.dump({"last_submit_ts": _to_rfc3339_z(dt_obj)}, f)
-#         os.replace(tmp, self.path)
 
 @beartype
 class DeltaWatermarkStore:
