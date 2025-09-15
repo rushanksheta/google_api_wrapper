@@ -39,7 +39,7 @@ from google_api_wrapper import GForms, GDrive, Authenticator
     ```
 - #### 1.2. Using Oauth2
 - 
-    Generate a token file for authentication from client secrets(refer to client_secrets-template.json) is expired else use refresh token
+    Generate a token file for authentication from client secrets(refer to client_secrets-template.json) if expired else use refresh token
     ```python
     # Initialize Object
     auth_object = Authenticator(secrets_dir='/home/spark/google_creds', secrets_fname='token.pkl')
@@ -58,18 +58,23 @@ from google_api_wrapper import GForms, GDrive, Authenticator
     # creates token.pkl file
     ```
 
-Get Google Form responses for forms with file upload questions
+Get Google Form responses for forms with file upload questions(idmap_loc is optional)
 ``` python
-import pandas as pd
-from google_api_wrapper import GForms
+GF = GForms(authenticator=auth, idmap_loc='../idmap.json')
 
-responses = GForms(token_dir='/home/spark/google_creds')\
-    .extract_form_data(form_id='(*-*)', include_fields=['question_title', 'textAnswers', 'fileUploadAnswers'])
-
-df = pd.DataFrame(responses)
-
-df_exploded = df.explode(column=['fileIds', 'fileNames', 'mimeTypes'])
+responses = GF(authenticator=auth_object, idmap_loc='../idmap.json', rtype='pandas')\
+                .extract_form_data(form_name='YourFormNameFrom_idmap.json')
 ```
+
+Get Number of Responses Submitted (wide is the default format, list is the default return format)
+``` python
+print(len(gf.extract_form_data(form_id='YourFormId', include_fields=[], format='wide')))
+```
+
+Use DeltaTable Watermarks to track saved responses
+``` python
+```
+
 ## License 
 This project is licensed under the **Apache License 2.0**
 

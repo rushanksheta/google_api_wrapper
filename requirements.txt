@@ -1,12 +1,16 @@
 # Google API Client Libraries (compatible pins)
-google-api-python-client==1.7.2
-google-auth>=2.26.1,<3       
-google-auth-httplib2==0.0.3
-google-auth-oauthlib==0.4.1
+google-api-python-client
+google-auth  
+google-auth-httplib2
+google-auth-oauthlib
 
 # Core dependencies for GCP
-google-api-core>=2.18.0,<3.0.0dev
-google-cloud-storage==2.18.2
+google-api-core
+google-cloud-storage
 
 # Type checking
-beartype==0.21.0
+beartype
+
+# MISC
+pandas
+delta-spark

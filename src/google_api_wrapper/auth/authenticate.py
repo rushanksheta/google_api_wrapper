@@ -39,7 +39,7 @@ class Authenticator:
                     self.service_account_path,
                     scopes=scopes
                 ).with_subject(self.IMPERSONATE_USER)
-                print(f"✅ Authenticated with service account: {self.service_account_path}")
+                print(f"::::> Authenticated with service account: {self.service_account_path}")
                 return self.creds
             except Exception as e:
                 print(f"XXXX> Service account authentication failed: {e}")
@@ -55,9 +55,9 @@ class Authenticator:
                     self.creds.refresh(Request())
                     with open(self.oauth_token_path, 'wb') as token_file:
                         pickle.dump(self.creds, token_file)
-                    print(f"✅ {self.oauth_token_path} updated successfully.")
+                    print(f"::::> {self.oauth_token_path} updated successfully.")
 
-                print(f"✅ Authenticated with OAuth token: {self.oauth_token_path}")
+                print(f"::::> Authenticated with OAuth token: {self.oauth_token_path}")
                 return self.creds
 
             except Exception as e:
@@ -81,5 +81,5 @@ class Authenticator:
         with open(self.oauth_token_path, 'wb') as token_file:
             pickle.dump(self.creds, token_file)
 
-        print(f"✅ Token generated and saved to {self.oauth_token_path}")
+        print(f"::::> Token generated and saved to {self.oauth_token_path}")
         return self.creds
