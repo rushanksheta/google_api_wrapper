@@ -11,7 +11,6 @@ from pyspark.sql import SparkSession, functions as F
 from beartype import beartype
 from beartype.vale import Is
 
-# remove
 try:
     from pyspark.sql.session import SparkSession as ClassicSpark
 except ImportError:
