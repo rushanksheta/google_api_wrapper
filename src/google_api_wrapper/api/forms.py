@@ -19,9 +19,11 @@ class GForms():
     def __init__(self, authenticator: Authenticator, idmap_loc: str = None):
         self.authenticator = authenticator
 
-        if idmap_loc is not None:
+        if idmap_loc:
             with open(idmap_loc, 'r') as f:
                 self.idmap = json.load(f)
+        else:
+            self.idmap = {}
 
     def get_forms_service(self):
         """
@@ -112,7 +114,7 @@ class GForms():
 
         return id_to_title
 
-    def extract_form_data(self, form_id: str = None, form_name: str = None, include_fields: list = ['question_id', 'question_title', 'textAnswers', 'fileUploadAnswers', 'dateAnswers', 'timeAnswers'], format: Literal['long', 'wide'] = "wide", after_watermark: Optional[Annotated[str, Is[_is_rfc3339]]] = None, rtype: Literal['pandas', 'pyspark', 'list'] = 'list') -> Union[list, pd.DataFrame, pyspark.sql.DataFrame]:
+    def extract_form_data(self, form_id: str = None, form_name: str = None, include_fields: Optional[list] = None, format: Literal['long', 'wide'] = "wide", after_watermark: Optional[Annotated[str, Is[_is_rfc3339]]] = None, rtype: Literal['pandas', 'pyspark', 'list'] = 'list') -> Union[list, pd.DataFrame, pyspark.sql.DataFrame]:
         """
         Extract form response data in either 'long' or 'wide' format.
 
@@ -125,14 +127,17 @@ class GForms():
         Returns:
             list: List of dictionaries representing extracted response data.
         """
-
         if (form_id is None) and (form_name is None):
             raise ValueError("Either form_id or form_name must be provided.")
 
-        if form_name in self.idmap.keys():
-            form_id = self.idmap.get(form_name)
-        else: 
-            raise ValueError(f"Form name '{form_name}' not found in idmap.")
+        if form_id is None:
+            if form_name and form_name in self.idmap.keys():
+                form_id = self.idmap.get(form_name)
+            else: 
+                raise ValueError(f"Form name '{form_name}' not found in idmap, available keys: {list(self.idmap.keys())}")
+        
+        if include_fields is None:
+            include_fields = ['question_id', 'question_title', 'textAnswers', 'fileUploadAnswers', 'dateAnswers', 'timeAnswers']
 
         responses = self.fetch_responses(form_id, after_watermark=after_watermark)
         question_map = self.get_question_id_title_map(form_id)
