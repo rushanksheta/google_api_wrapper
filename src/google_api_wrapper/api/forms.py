@@ -129,7 +129,7 @@ class GForms():
         if (form_id is None) and (form_name is None):
             raise ValueError("Either form_id or form_name must be provided.")
 
-        if form_name in self.idmap.keys():
+        if self.idmap and form_name in self.idmap.keys():
             form_id = self.idmap.get(form_name)
         else: 
             raise ValueError(f"Form name '{form_name}' not found in idmap.")
